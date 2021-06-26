@@ -1,5 +1,5 @@
 #include "vm.h"
-
+ 
 /**
 *	Konstruktor inicializuje program_memory na hodnoty 0xffff v celem rozsahu.
 **/
