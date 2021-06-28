@@ -12,16 +12,18 @@ public:
 	vm();
 
 	/*
-	* Vypise obsah pameti na adrese
-	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci 
-	*/
-	void getMemory(uint16_t);
-
-	/*
 	* Metoda prevezme binarni soubor. Nastavi PC, a zapise si program do pameti.
 	* @param const char*: nazev souboru, nebo uplna cesta k souboru
 	*/
 	void load(const char*);
+
+	/*
+	* Posle obsah pameti na predane adrese na stdout 
+	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
+	*/
+	void memoryDump(uint16_t);
+
+	void test_running(void);
 
 private:
 	uint16_t memory[65535];
@@ -63,6 +65,13 @@ private:
 	
 	void eval(void);
 	
+	/*
+	* Vraci obsah pameti na adrese
+	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
+	* @return uint16_t: hexa obsah pameti na pozadovane adrese
+	*/
+	uint16_t readMemory(uint16_t);
+
 	/*
 	* Inicializace pameti na hodnoty 0xffff.
 	*/

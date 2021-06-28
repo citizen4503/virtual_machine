@@ -6,7 +6,7 @@ int main() {
 
 	test_machine.load("example1.bin");
 
-	test_machine.getMemory(0x3000);
+	test_machine.test_running();
 	
 	return 0;
 }

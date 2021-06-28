@@ -60,7 +60,17 @@ void vm::load(const char* image_name) {
 }
 
 void vm::fetch(void) {
-	
+	// precteme instrukci na adrese v pameti na kterou nam ukazuje PC
+	uint16_t instruction = this->readMemory(this->registers.PC);
+	// bitovym posunem o 12 bitu ziskame posledni 4 bity instrukce (ta obsahuje operacni kod)
+	uint16_t op = instruction >> 12;
+	std::cout	<< "FETCH>\t\t"
+				<< "PC: " << "0x" << std::hex << this->registers.PC
+				<< " | INSTRUCTION: " << std::hex << instruction
+				<< " | OP: " << std::hex << op
+				<< std::endl;
+	// inkrementujeme PC na dalsi adresu v pameti
+	this->registers.PC++;
 }
 
 void vm::eval(void) {
@@ -87,6 +97,14 @@ void vm::resetRegisters(void) {
 	this->registers.POS = 0x0000;
 }
 
-void vm::getMemory(uint16_t memory_adress) { 
-	std::cout << std::hex << "0x" << memory_adress << ":" << "0x" << std::hex << this->memory[memory_adress] << std::endl;
+uint16_t vm::readMemory(uint16_t memory_address) { 
+	return this->memory[memory_address];
+}
+
+void vm::memoryDump(uint16_t memory_address) {
+	std::cout << "MEM_DUMP>\t" << std::hex << "0x" << memory_address << ":" << "0x" << std::hex << this->memory[memory_address] << std::endl;
+}
+
+void vm::test_running(void) {
+	this->fetch();
 }
