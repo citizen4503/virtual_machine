@@ -50,20 +50,32 @@ private:
 	}flags;
 
 	typedef enum {
-		ADD = 0,
-		LD,
-		ST,
-		JMP,
-		LDR,
-		STR,
+		ADD = 1,
 		AND,
-		OR,
-		NOT
+		NOT,
+		BR,
+		JMP,
+		JSR,
+		LD,
+		LDI,
+		LDR,
+		LEA,
+		ST,
+		STI,
+		STR,
+		TRAP,
+		RES,
+		RTI
 	}instructions;
 
-	void fetch(void);
+	/*
+	* Metoda precte instrukci v pameti na kterou ukazuje registr PC a bitovym posunem ziska OP kod, ktery vraci.
+	* return uint16_t : op kod 
+	* return uint16_t : instrukce
+	*/
+	std::pair <uint16_t, uint16_t> fetch(void);
 	
-	void eval(void);
+	void eval(std::pair <uint16_t, uint16_t>);
 	
 	/*
 	* Vraci obsah pameti na adrese

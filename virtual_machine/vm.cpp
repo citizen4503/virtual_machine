@@ -59,7 +59,7 @@ void vm::load(const char* image_name) {
 	rom_image.close();
 }
 
-void vm::fetch(void) {
+std::pair <uint16_t, uint16_t> vm::fetch(void) {
 	// precteme instrukci na adrese v pameti na kterou nam ukazuje PC
 	uint16_t instruction = this->readMemory(this->registers.PC);
 	// bitovym posunem o 12 bitu ziskame posledni 4 bity instrukce (ta obsahuje operacni kod)
@@ -69,12 +69,74 @@ void vm::fetch(void) {
 				<< " | INSTRUCTION: " << std::hex << instruction
 				<< " | OP: " << std::hex << op
 				<< std::endl;
+	
 	// inkrementujeme PC na dalsi adresu v pameti
 	this->registers.PC++;
+
+	return std::make_pair(op, instruction);
 }
 
-void vm::eval(void) {
+void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
+	
+	uint16_t op = op_and_instruction.first;
+	uint16_t instruction = op_and_instruction.second;
 
+	switch (op) {
+		case this->ADD: {
+			std::cout << "ADD>\t\t" << std::hex << instruction << std::endl;
+			break;
+		}
+		case this->AND: {
+			std::cout << "AND" << std::endl;
+			break;
+		}
+		case this->NOT: {
+			break;
+		}
+		case this->BR: {
+			break;
+		}
+		case this->JMP: {
+			break;
+		}
+		case this->JSR: {
+			break;
+		}
+		case this->LD: {
+			break;
+		}
+		case this->LDI: {
+			break;
+		}
+		case this->LDR: {
+			break;
+		}
+		case this->LEA: {
+			break;
+		}
+		case this->ST: {
+			break;
+		}
+		case this->STI: {
+			break;
+		}
+		case this->STR: {
+			break;
+		}
+		case this->TRAP: {
+			break;
+		}
+		case this->RES: {
+			break;
+		}
+		case this->RTI: {
+			break;
+		}
+		default: {
+			// spatny op kod
+			break;
+		}
+	}
 }
 
 void vm::resetMemory(void) {
@@ -106,5 +168,5 @@ void vm::memoryDump(uint16_t memory_address) {
 }
 
 void vm::test_running(void) {
-	this->fetch();
+	this->eval(this->fetch());
 }
