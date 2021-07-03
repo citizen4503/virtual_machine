@@ -2,12 +2,12 @@
  
 #include <iostream>
 #include <fstream>
-#include "compiler.h"
+#include "debugger.h"
 
-class vm : private compiler{
+class vm : private debugger{
 public:
 	/*
-	*	Konstruktor vola metody pro inicializaci pameti a nulovani registru.
+	*	Konstruktor vola metody pro inicializaci pameti a nulovani registru a flagu.
 	*/
 	vm();
 
@@ -23,31 +23,38 @@ public:
 	*/
 	void memoryDump(uint16_t);
 
-	void test_running(void);
+	/*
+	* Posle obsah registru na stdout
+	* @param 
+	*/
+	void registerDump(int);
 
-private:
+	/*
+	* Zacne zpracovavat program nahrany v pameti od adresy na PC
+	*/
+	void run(void);
+
+protected:
+	// Pametova oblast
 	uint16_t memory[65535];
-	
-	struct Registers {
-		uint16_t R0 = 0x0000;
-		uint16_t R1 = 0x0000;
-		uint16_t R2 = 0x0000;
-		uint16_t R3 = 0x0000;
-		uint16_t R4 = 0x0000;
-		uint16_t R5 = 0x0000;
-		uint16_t R6 = 0x0000;
-		uint16_t R7 = 0x0000;
-		uint16_t PC = 0x0000;
-		uint16_t NEG = 0x0000;
-		uint16_t ZRO = 0x0000;
-		uint16_t POS = 0x0000;
-	}registers;
+
+	// Oblast obsahu registru
+	uint16_t registers[12];
 
 	typedef enum {
-		POS = 1 << 0,	// 1
-		ZRO = 1 << 1,	// 2
-		NEG = 1 << 2	// 4
-	}flags;
+		R0 = 0,
+		R1,
+		R2,
+		R3,
+		R4,
+		R5,
+		R6,
+		R7,
+		PC,
+		ZRO,
+		POS,
+		NEG
+	}Registers;
 
 	typedef enum {
 		ADD = 1,
@@ -75,14 +82,21 @@ private:
 	*/
 	std::pair <uint16_t, uint16_t> fetch(void);
 	
+	/*
+	* Metoda slouzi ke zpracovani dane instrukce
+	* @param pair: operacni kod a instrukce pro zpracovani
+	*/
 	void eval(std::pair <uint16_t, uint16_t>);
 	
 	/*
-	* Vraci obsah pameti na adrese
-	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
-	* @return uint16_t: hexa obsah pameti na pozadovane adrese
+	* Metoda doplni n-bitove cislo na velikost 16-ti bitu
+	* @param uint16_t: predana instrukce, z ktere budeme zpracovavat pocet bitu dle druheho parametru
+	* @param int: pocet bitu ke zpracovani
+	* @return uint16_t: vraci n-bitove cislo doplnene o nuly nebo jednicky (dle typu instrukce)
 	*/
-	uint16_t readMemory(uint16_t);
+	uint16_t extend(uint16_t, int);
+
+	void update_flag(uint16_t);
 
 	/*
 	* Inicializace pameti na hodnoty 0xffff.
@@ -93,4 +107,23 @@ private:
 	* Vynulovani registru
 	*/
 	void resetRegisters(void);
+
+	/*
+	* Nuluje hodnoty priznakovych registru
+	*/
+	void resetFlags(void);
+
+	/*
+	* Vraci obsah pameti na adrese
+	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
+	* @return uint16_t: hexa obsah pameti na pozadovane adrese
+	*/
+	uint16_t readMemory(uint16_t);
+
+	/*
+	* Vraci obsah registru dle parametru
+	* @param int: index v poli registru
+	* @return uint16_t: hodnota registru predaneho v parametru funkce
+	*/
+	uint16_t readRegister(int);
 };
