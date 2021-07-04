@@ -31,27 +31,28 @@ void vm::load(const char* image_name) {
 		// jakmile nam inkrementor rekne ze jsou oba prvky pole naplneny
 		if (i == 2) {
 			// provedeme bitovy posun pro prvnich 8 bitu z prvniho precteneho bajtu a pridame k tomu zbyvajicich 8 bitu z druheho bajtu logickym OR
-			uint16_t res = (two_bytes[0] << 8) | (two_bytes[1]);
+			uint16_t assembled_instruction = (two_bytes[0] << 8) | (two_bytes[1]);
+
+			// DEBUG ONLY !!!!!!!!!!!!!!!!!!!!!!!!!!
+			//std::cout << "DEBUG ONLY: " << std::hex << assembled_instruction << std::endl;
 
 			// pokud jsme nabrali prvni dva bajty, musime si je ulozit do registru PC
 			if (bytes_for_pc == true) {
 				bytes_for_pc = false;
-				this->registers[PC] = res;
+				this->registers[PC] = assembled_instruction;
 				// nove nastaveny PC nam urcuje na jakou adresu budeme zapisovat precteny program do programove pameti
 				memory_index = this->registers[PC];
 			}
 			else {
 				// vysledne 2 bajty (16 bitu) zapiseme na adresu do pameti
-				this->memory[memory_index] = res;
+				this->memory[memory_index] = assembled_instruction;
 				memory_index++;
 			}
 
-			//std::cout << std::hex << two_bytes[0] << " + " << std::hex << two_bytes[1] << " = " << std::hex << res << std::endl;
-			
 			// nakonec si vsechno vynulujeme abysme mohli jit odznova
 			two_bytes[0] = 0x00;
 			two_bytes[1] = 0x00;
-			res = 0x00;
+			assembled_instruction = 0x00;
 			i = 0;
 		}
 	}
@@ -95,13 +96,13 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 				// prvni parametr pro metodu extend je upraven dle "instruction & 0x1f" abychom si vytahli pouze 5 bitu, ktere chceme zpracovat 
 				uint16_t imm5 = this->extend(instruction & 0x1f, 5);
 				// aritmeticky soucet registru a konstanty
-				registers[dst_reg] = registers[src_reg] + imm5;
+				this->registers[dst_reg] = this->registers[src_reg] + imm5;
 			}
 			else {
 				// pomoci masky "0x7" si vytahneme posledni 3 bity z instrukce k zadefinovani druheho zdrojoveho registru
 				uint16_t second_src_reg = instruction & 0x7;
 				// aritmeticky soucet obsahu dvou registru
-				registers[dst_reg] = registers[src_reg] + second_src_reg;
+				this->registers[dst_reg] = this->registers[src_reg] + second_src_reg;
 			}
 
 			this->update_flag(src_reg);
@@ -109,6 +110,28 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 			break;
 		}
 		case this->AND: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 6) & 0x7;
+			// test na 5-ty bit instrukce > immediate mod
+			uint16_t imm = (instruction >> 5) & 0x1;
+
+			if (imm) {
+				// prvni parametr pro metodu extend je upraven dle "instruction & 0x1f" abychom si vytahli pouze 5 bitu, ktere chceme zpracovat 
+				uint16_t imm5 = this->extend(instruction & 0x1f, 5);
+				// logicky soucet registru a konstanty
+				this->registers[dst_reg] = this->registers[src_reg] & imm5;
+			}
+			else {
+				// pomoci masky "0x7" si vytahneme posledni 3 bity z instrukce k zadefinovani druheho zdrojoveho registru
+				uint16_t second_src_reg = instruction & 0x7;
+				// logicky soucet obsahu dvou registru
+				this->registers[dst_reg] = this->registers[src_reg] & second_src_reg;
+			}
+
+			this->update_flag(src_reg);
+
 			break;
 		}
 		case this->NOT: {
@@ -127,6 +150,13 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 			break;
 		}
 		case this->LDI: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// z instrukce vytahneme 9 bitu pro ziskani pc offsetu
+			uint16_t pc_offset = extend(instruction & 0x1FF, 9);
+			// pricteme pc_offset s registrem PC
+			this->registers[dst_reg] = this->readMemory(this->registers[this->registers[PC]] + pc_offset);
+			this->update_flag(dst_reg);
 			break;
 		}
 		case this->LDR: {
@@ -219,6 +249,12 @@ uint16_t vm::readRegister(int register_index) {
 
 void vm::memoryDump(uint16_t memory_address) {
 	std::cout << "MEM_DUMP>\t" << std::hex << "0x" << memory_address << ":" << "0x" << std::hex << this->readMemory(memory_address) << std::endl;
+}
+
+void vm::memoryDump(uint16_t memory_address_start, uint16_t memory_address_end) {
+	for (int i = memory_address_start; i <= memory_address_end; i++) {
+		std::cout << "MEM_DUMP>\t" << std::hex << "0x" << i << ":" << "0x" << std::hex << this->readMemory(i) << std::endl;
+	}
 }
 
 void vm::registerDump(int register_index) {

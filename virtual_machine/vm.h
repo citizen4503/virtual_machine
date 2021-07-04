@@ -24,6 +24,13 @@ public:
 	void memoryDump(uint16_t);
 
 	/*
+	* Pretizena metoda 'memoryDump', Posle obsah pameti v rozsahu predanych adrese pameti na stdout
+	* @param uint16_t: pocatecni adresa pameti zapsana v 16-tkove notaci
+	* @param uint16_t: konecna adresa pameti zapsana v 16-tkove notaci
+	*/
+	void memoryDump(uint16_t, uint16_t);
+
+	/*
 	* Posle obsah registru na stdout
 	* @param 
 	*/
@@ -57,21 +64,101 @@ protected:
 	}Registers;
 
 	typedef enum {
+		/*
+		* Aritmeticky soucet
+		* 
+		* Dekodovani:
+		* --------------------------------------------------
+		* |15       12|11     9|8         6|5|4  3|2      0|
+		* |    0101   |   DR   |     SR    |0| 00 |   SR2  |
+		* --------------------------------------------------
+		* 
+		* --------------------------------------------------
+		* |15       12|11     9|8         6|5|4           0|
+		* |    0101   |   DR   |     SR    |1|    IMM5     |
+		* --------------------------------------------------
+		* 
+		* Pseudokod:
+		* if (bit[5] == 0)
+		*		DR = SR1 + SR2
+		* else
+		*		DR = SR1 + extend(IMM5)
+		* 
+		* Priklad:
+		* ADD R2, R3, R4	; R2 <- R3 + R4
+		* ADD R2, R3, #3	; R2 <- R3 + 3
+		*/
 		ADD = 1,
+		/*
+		* Logicky Soucet
+		*/
 		AND,
+		/*
+		* 
+		*/
 		NOT,
+		/*
+		* 
+		*/
 		BR,
+		/*
+		* 
+		*/
 		JMP,
+		/*
+		* 
+		*/
 		JSR,
+		/*
+		* 
+		*/
 		LD,
+		/*
+		* Load indirect, nacte hodnotu z pameti do registru
+		*
+		* Dekodovani:
+		* --------------------------------------------------
+		* |15       12|11     9|8                         0|
+		* |    1010   |   DR   |        PCoffset9          |
+		* --------------------------------------------------
+		*
+		* Pseudokod:
+		*
+		* Priklad:
+		* LDI R4, LOC	; R4 <- mem[mem[LOC]]
+		*/
 		LDI,
+		/*
+		*
+		*/
 		LDR,
+		/*
+		*
+		*/
 		LEA,
+		/*
+		*
+		*/
 		ST,
+		/*
+		*
+		*/
 		STI,
+		/*
+		*
+		*/
 		STR,
+		/*
+		*
+		*/
 		TRAP,
+		/*
+		* 
+		*/
 		RES,
+		/*
+		*
+		*/
 		RTI
 	}instructions;
 
@@ -96,6 +183,10 @@ protected:
 	*/
 	uint16_t extend(uint16_t, int);
 
+	/*
+	* Nastavi priznakove registry dle hodnoty registru v parametru
+	* @param: uint16_t: predany registr podle ktereho nastavime znamenkove registry
+	*/
 	void update_flag(uint16_t);
 
 	/*
