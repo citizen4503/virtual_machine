@@ -105,7 +105,7 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 				this->registers[dst_reg] = this->registers[src_reg] + second_src_reg;
 			}
 
-			this->update_flag(src_reg);
+			this->update_flag(this->registers[dst_reg]);
 
 			break;
 		}
@@ -130,11 +130,21 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 				this->registers[dst_reg] = this->registers[src_reg] & second_src_reg;
 			}
 
-			this->update_flag(src_reg);
+			this->update_flag(this->registers[dst_reg]);
 
 			break;
 		}
 		case this->NOT: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 6) & 0x7;
+
+			// negace
+			this->registers[dst_reg] = ~this->registers[src_reg];
+
+			this->update_flag(this->registers[dst_reg]);
+
 			break;
 		}
 		case this->BR: {
@@ -155,7 +165,7 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 			// z instrukce vytahneme 9 bitu pro ziskani pc offsetu
 			uint16_t pc_offset = extend(instruction & 0x1FF, 9);
 			// pricteme pc_offset s registrem PC
-			this->registers[dst_reg] = this->readMemory(this->registers[this->registers[PC]] + pc_offset);
+			this->registers[dst_reg] = this->readMemory(this->registers[PC] + pc_offset);
 			this->update_flag(dst_reg);
 			break;
 		}

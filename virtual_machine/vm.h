@@ -90,15 +90,7 @@ protected:
 		*/
 		ADD = 1,
 		/*
-		* Logicky Soucet
-		*/
-		AND,
-		/*
-		* 
-		*/
-		NOT,
-		/*
-		* 
+		*
 		*/
 		BR,
 		/*
@@ -110,9 +102,25 @@ protected:
 		*/
 		JSR,
 		/*
-		* 
+		* Logicky Soucet
+		*/
+		AND,
+		/*
+		*
+		*/
+		STR,
+		/*
+		*
 		*/
 		LD,
+		/*
+		*
+		*/
+		LDR,
+		/*
+		*
+		*/
+		NOT,
 		/*
 		* Load indirect, nacte hodnotu z pameti do registru
 		*
@@ -131,10 +139,6 @@ protected:
 		/*
 		*
 		*/
-		LDR,
-		/*
-		*
-		*/
 		LEA,
 		/*
 		*
@@ -144,10 +148,6 @@ protected:
 		*
 		*/
 		STI,
-		/*
-		*
-		*/
-		STR,
 		/*
 		*
 		*/
