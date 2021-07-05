@@ -2,14 +2,13 @@
  
 #include <iostream>
 #include <fstream>
-#include "debugger.h"
 
-class vm : private debugger{
+class VM{
 public:
 	/*
 	*	Konstruktor vola metody pro inicializaci pameti a nulovani registru a flagu.
 	*/
-	vm();
+	VM();
 
 	/*
 	* Metoda prevezme binarni soubor. Nastavi PC, a zapise si program do pameti.
@@ -18,30 +17,31 @@ public:
 	void load(const char*);
 
 	/*
-	* Posle obsah pameti na predane adrese na stdout 
-	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
+	* Zpracuje instrukci na adrese PC
 	*/
-	void memoryDump(uint16_t);
+	void step(void);
 
 	/*
-	* Pretizena metoda 'memoryDump', Posle obsah pameti v rozsahu predanych adrese pameti na stdout
-	* @param uint16_t: pocatecni adresa pameti zapsana v 16-tkove notaci
-	* @param uint16_t: konecna adresa pameti zapsana v 16-tkove notaci
-	*/
-	void memoryDump(uint16_t, uint16_t);
-
-	/*
-	* Posle obsah registru na stdout
-	* @param 
-	*/
-	void registerDump(int);
-
-	/*
-	* Zacne zpracovavat program nahrany v pameti od adresy na PC
+	* Zacne zpracovavat vsechny instrukce od aktualniho PC
 	*/
 	void run(void);
 
+	/*
+	* Vraci obsah pameti na adrese
+	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
+	* @return uint16_t: hexa obsah pameti na pozadovane adrese
+	*/
+	uint16_t getMemoryValue(uint16_t);
+
+	/*
+	* Vraci obsah registru dle parametru
+	* @param int: index v poli registru
+	* @return uint16_t: hodnota registru predaneho v parametru funkce
+	*/
+	uint16_t getRegisterValue(int);
+
 protected:
+
 	// Pametova oblast
 	uint16_t memory[65535];
 
@@ -64,6 +64,7 @@ protected:
 	}Registers;
 
 	typedef enum {
+		BR = 0,
 		/*
 		* Aritmeticky soucet
 		* 
@@ -89,38 +90,14 @@ protected:
 		* ADD R2, R3, #3	; R2 <- R3 + 3
 		*/
 		ADD = 1,
-		/*
-		*
-		*/
-		BR,
-		/*
-		* 
-		*/
-		JMP,
-		/*
-		* 
-		*/
-		JSR,
-		/*
-		* Logicky Soucet
-		*/
-		AND,
-		/*
-		*
-		*/
-		STR,
-		/*
-		*
-		*/
-		LD,
-		/*
-		*
-		*/
-		LDR,
-		/*
-		*
-		*/
-		NOT,
+		LD = 2,
+		ST = 3,
+		JSR_JSRR = 4, // + JSRR
+		AND = 5,
+		LDR = 6,
+		STR = 7,
+		RTI = 8,
+		NOT = 9,
 		/*
 		* Load indirect, nacte hodnotu z pameti do registru
 		*
@@ -135,32 +112,22 @@ protected:
 		* Priklad:
 		* LDI R4, LOC	; R4 <- mem[mem[LOC]]
 		*/
-		LDI,
-		/*
-		*
-		*/
-		LEA,
-		/*
-		*
-		*/
-		ST,
-		/*
-		*
-		*/
-		STI,
-		/*
-		*
-		*/
-		TRAP,
-		/*
-		* 
-		*/
-		RES,
-		/*
-		*
-		*/
-		RTI
+		LDI = 10,
+		STI = 11,
+		JMP_RET = 12, // + RET
+		RES = 13,
+		LEA = 14,
+		TRAP = 15
 	}instructions;
+
+	typedef enum {
+		TRAP_GETC = 0x20,	// ziska znak z klavesnice, neposila na terminal
+		TRAP_OUT = 0x21,	// znak na vystup
+		TRAP_PUTS = 0x22,	// string na vystup
+		TRAP_IN = 0x23,		// ziska znak z klavesnice, posle na terminal
+		TRAP_PUTSP = 0x24,	// byte stringu na vystup
+		TRAP_HALT = 0x25	// zastavi program
+	}trap;
 
 	/*
 	* Metoda precte instrukci v pameti na kterou ukazuje registr PC a bitovym posunem ziska OP kod, ktery vraci.
@@ -190,7 +157,7 @@ protected:
 	void update_flag(uint16_t);
 
 	/*
-	* Inicializace pameti na hodnoty 0xffff.
+	* Inicializace pameti na hodnoty 0xfd00.
 	*/
 	void resetMemory(void);
 	
@@ -203,18 +170,4 @@ protected:
 	* Nuluje hodnoty priznakovych registru
 	*/
 	void resetFlags(void);
-
-	/*
-	* Vraci obsah pameti na adrese
-	* @param uint16_t: adresa pameti zapsana v 16-tkove notaci
-	* @return uint16_t: hexa obsah pameti na pozadovane adrese
-	*/
-	uint16_t readMemory(uint16_t);
-
-	/*
-	* Vraci obsah registru dle parametru
-	* @param int: index v poli registru
-	* @return uint16_t: hodnota registru predaneho v parametru funkce
-	*/
-	uint16_t readRegister(int);
 };

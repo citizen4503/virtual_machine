@@ -1,12 +1,12 @@
 #include "vm.h"
  
-vm::vm() {
+VM::VM() {
 	this->resetMemory();
 	this->resetRegisters();
 	this->resetFlags();
 }
 
-void vm::load(const char* image_name) {
+void VM::load(const char* image_name) {
 	unsigned char temp;
 	uint8_t two_bytes[2] = {0x00, 0x00};
 	bool bytes_for_pc = true;
@@ -61,29 +61,49 @@ void vm::load(const char* image_name) {
 	rom_image.close();
 }
 
-std::pair <uint16_t, uint16_t> vm::fetch(void) {
+std::pair <uint16_t, uint16_t> VM::fetch(void) {
 	// precteme instrukci na adrese v pameti na kterou nam ukazuje PC
-	uint16_t instruction = this->readMemory(this->registers[PC]);
+	uint16_t instruction = this->memory[this->registers[PC]];
 	// bitovym posunem o 12 bitu ziskame posledni 4 bity instrukce (ta obsahuje operacni kod)
 	uint16_t op = instruction >> 12;
+	/*
 	std::cout	<< "FETCH>\t\t"
 				<< "PC: " << "0x" << std::hex << this->registers[PC]
 				<< " | INSTRUCTION: " << std::hex << instruction
 				<< " | OP: " << std::hex << op
 				<< std::endl;
-	
+	*/
 	// inkrementujeme PC na dalsi adresu v pameti
 	this->registers[PC]++;
 
 	return std::make_pair(op, instruction);
 }
 
-void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
+void VM::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 	
 	uint16_t op = op_and_instruction.first;
 	uint16_t instruction = op_and_instruction.second;
 
 	switch (op) {
+		case this->BR: {
+			uint16_t pc_offset = this->extend(instruction & 0x1ff, 9);
+			
+			uint16_t flag_negative = (instruction >> 11) & 1;
+			uint16_t flag_zero = (instruction >> 10) & 1;
+			uint16_t flag_positive = (instruction >> 9) & 1;
+
+			uint16_t positive = (this->registers[POS] >> 12) & 1;
+			uint16_t zero = ((this->registers[ZRO] >> 12) & 1);
+			uint16_t negative = ((this->registers[NEG] >> 12) & 1);
+
+			if ( ((flag_positive & positive) == 1) || ((flag_negative & negative) == 1) || ((flag_zero & zero) == 1)) {
+				this->registers[PC] += pc_offset;
+				std::cout << "FLAG POSITIVE = " << std::hex << flag_positive << std::endl;
+				std::cout << "FLAG NEGATIVE = " << std::hex << flag_negative << std::endl;
+				std::cout << "FLAG ZERO = " << std::hex << flag_zero << std::endl;
+			}
+			break;
+		}
 		case this->ADD: {
 			// nastaveni ciloveho registru
 			uint16_t dst_reg = (instruction >> 9) & 0x7;
@@ -106,6 +126,44 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 			}
 
 			this->update_flag(this->registers[dst_reg]);
+
+			break;
+		}
+		case this->LD: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+
+			// ziskame offset pro PC
+			uint16_t pc_offset = this->extend((instruction & 0x1ff), 9);
+
+			// nastaveni hodonty ciloveho registru podle adresy na PC + offset9
+			this->registers[dst_reg] = this->memory[this->registers[PC] + pc_offset];
+
+			this->update_flag(this->registers[dst_reg]);
+			break;
+		}
+		case this->ST: {
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 9) & 0x7;
+			// ziskame offset pro PC
+			uint16_t pc_offset = this->extend((instruction & 0x1ff), 9);
+			// na adresu v pameti na kterou ukazuje PC + offset, zapiseme obsah zdrojoveho registru
+			this->memory[this->registers[PC] + pc_offset] = this->registers[src_reg];
+			break;
+		}
+		case this->JSR_JSRR: {
+			// ulozime adresu PC do registru R7
+			this->registers[R7] = this->registers[PC];
+
+			// JSR
+			if ((instruction >> 11) & 0x1) {
+				this->registers[PC] += extend((instruction & 0x7ff), 11);
+			}
+			// JSRR
+			else {
+				uint16_t baseR = (instruction >> 6) & 0x7;
+				this->registers[PC] = this->registers[baseR];
+			}
 
 			break;
 		}
@@ -134,6 +192,35 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 
 			break;
 		}
+		case this->LDR: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 6) & 0x7;
+			// nastaveni offsetu
+			uint16_t offset = this->extend(instruction & 0x3f, 6);
+			// nastaveni hodnoty ciloveho registru podle obsahu zdrojoveho registru + offsetu
+			this->registers[dst_reg] = this->memory[this->registers[src_reg] + offset];
+
+			this->update_flag(this->registers[dst_reg]);
+
+			break;
+		}
+		case this->STR: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 6) & 0x7;
+			// nastaveni offsetu
+			uint16_t offset = this->extend(instruction & 0x3f, 6);
+			// zapis do pameti
+			this->memory[this->registers[src_reg] + offset] = this->registers[dst_reg];
+
+			break;
+		}
+		case this->RTI: {
+			break;
+		}
 		case this->NOT: {
 			// nastaveni ciloveho registru
 			uint16_t dst_reg = (instruction >> 9) & 0x7;
@@ -147,52 +234,75 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 
 			break;
 		}
-		case this->BR: {
-			break;
-		}
-		case this->JMP: {
-			break;
-		}
-		case this->JSR: {
-			break;
-		}
-		case this->LD: {
-			break;
-		}
 		case this->LDI: {
 			// nastaveni ciloveho registru
 			uint16_t dst_reg = (instruction >> 9) & 0x7;
 			// z instrukce vytahneme 9 bitu pro ziskani pc offsetu
 			uint16_t pc_offset = extend(instruction & 0x1FF, 9);
 			// pricteme pc_offset s registrem PC
-			this->registers[dst_reg] = this->readMemory(this->registers[PC] + pc_offset);
+			this->registers[dst_reg] = this->memory[this->registers[PC] + pc_offset];
 			this->update_flag(dst_reg);
 			break;
 		}
-		case this->LDR: {
-			break;
-		}
-		case this->LEA: {
-			break;
-		}
-		case this->ST: {
-			break;
-		}
 		case this->STI: {
+			// nastaveni zdrojoveho registru
+			uint16_t src_reg = (instruction >> 9) & 0x7;
+			// nastaveni pc offsetu
+			uint16_t pc_offset = extend(instruction & 0x1FF, 9);
+			// zapis do pameti
+			this->memory[this->memory[this->registers[PC] + pc_offset]] = this->registers[src_reg];
 			break;
 		}
-		case this->STR: {
-			break;
-		}
-		case this->TRAP: {
+		case this->JMP_RET: {
+			// nastaveni zdrojoveho registru pro adresu PC
+			uint16_t src_reg = (instruction >> 6) & 0x7;
+
+			if (src_reg == 0x7) {
+				// nastaveni hodnoty PC podle obsahu R7 (instrukce RET)
+				this->registers[PC] = this->registers[R7];
+			}
+			else {
+				// nastaveni nove hodnoty PC
+				this->registers[PC] = this->registers[src_reg];
+			}
 			break;
 		}
 		case this->RES: {
 			break;
 		}
-		case this->RTI: {
+		case this->LEA: {
+			// nastaveni ciloveho registru
+			uint16_t dst_reg = (instruction >> 9) & 0x7;
+			// nastaveni pc offsetu
+			uint16_t pc_offset = extend(instruction & 0x1FF, 9);
+			// ulozeni adresy (pc_offset + PC) do registru
+			this->registers[dst_reg] = this->registers[PC] + pc_offset;
 			break;
 		}
+		case this->TRAP: {
+			switch (instruction & 0xff) {
+				case this->TRAP_GETC: {
+					break;
+				}
+				case this->TRAP_OUT: {
+					break;
+				}
+				case this->TRAP_PUTS: {
+					break;
+				}
+				case this->TRAP_IN: {
+					break;
+				}
+				case this->TRAP_PUTSP: {
+					break;
+				}
+				case this->TRAP_HALT: {
+					break;
+				}
+			}
+			break;
+		}
+
 		default: {
 			// spatny op kod
 			break;
@@ -200,7 +310,7 @@ void vm::eval(std::pair <uint16_t, uint16_t> op_and_instruction) {
 	}
 }
 
-uint16_t vm::extend(uint16_t x, int bit_count) {
+uint16_t VM::extend(uint16_t x, int bit_count) {
 	// testujeme n-ty bit (bit_count - 1) na hodnotu 1
 	if ((x >> (bit_count - 1)) & 1) {
 		// vezmeme puvodni hodnotu a doplnime ji o hodnoty 0xffff. Puvodnich n-bitu  (bit_count) zustava zachovano.
@@ -209,27 +319,13 @@ uint16_t vm::extend(uint16_t x, int bit_count) {
 	return x;
 }
 
-void vm::update_flag(uint16_t r) {
-	this->resetFlags();
-
-	if (this->registers[R0] == 0) {
-		this->registers[ZRO] = 0xffff;
-	}
-	else if (this->registers[R0] >> 15) {
-		this->registers[NEG] = 0xffff;
-	}
-	else {
-		this->registers[POS] = 0xffff;
-	}
-}
-
-void vm::resetMemory(void) {
+void VM::resetMemory(void) {
 	for (uint16_t i = 0x0000; i < 0xffff; i++) {
-		this->memory[i] = 0xffff;
+		this->memory[i] = 0xfd00;
 	}
 }
 
-void vm::resetRegisters(void) {
+void VM::resetRegisters(void) {
 	this->registers[R0] = 0x0000;
 	this->registers[R1] = 0x0000;
 	this->registers[R2] = 0x0000;
@@ -243,36 +339,47 @@ void vm::resetRegisters(void) {
 	this->registers[POS] = 0x0000;
 }
 
-void vm::resetFlags(void) {
+void VM::update_flag(uint16_t r) {
+	this->resetFlags();
+
+	if (r == 0) {
+		this->registers[ZRO] = 0xffff;
+	}
+	else if (r >> 15) {
+		this->registers[NEG] = 0xffff;
+	}
+	else {
+		this->registers[POS] = 0xffff;
+	}
+}
+
+void VM::resetFlags(void) {
 	this->registers[NEG] = 0x0000;
 	this->registers[POS] = 0x0000;
 	this->registers[ZRO] = 0x0000;
 }
 
-uint16_t vm::readMemory(uint16_t memory_address) { 
-	return this->memory[memory_address];
-}
-
-uint16_t vm::readRegister(int register_index) {
+uint16_t VM::getRegisterValue(int register_index) {
 	return this->registers[register_index];
 }
 
-void vm::memoryDump(uint16_t memory_address) {
-	std::cout << "MEM_DUMP>\t" << std::hex << "0x" << memory_address << ":" << "0x" << std::hex << this->readMemory(memory_address) << std::endl;
+uint16_t VM::getMemoryValue(uint16_t memory_address) {
+	return this->memory[memory_address];
 }
 
-void vm::memoryDump(uint16_t memory_address_start, uint16_t memory_address_end) {
-	for (int i = memory_address_start; i <= memory_address_end; i++) {
-		std::cout << "MEM_DUMP>\t" << std::hex << "0x" << i << ":" << "0x" << std::hex << this->readMemory(i) << std::endl;
-	}
-}
-
-void vm::registerDump(int register_index) {
-	const char* register_names[] = { "R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "PC", "FLG_ZRO", "FLG_POS", "FLG_NEG" };
-
-	std::cout << "REG DUMP>\t" << register_names[register_index] << ":" << std::hex << "0x" << readRegister(register_index) << std::endl;
-}
-
-void vm::run(void) {
+void VM::step(void) {
 	this->eval(this->fetch());
+}
+
+void VM::run(void) {
+	uint16_t tempPC = this->registers[PC];
+
+	while (1) {
+		// konec pametoveho prostoru
+		if (this->registers[PC] == 0xffff) {
+			this->registers[PC] = tempPC;
+			break;
+		}
+		this->eval(this->fetch());
+	}
 }
