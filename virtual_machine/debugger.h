@@ -10,4 +10,7 @@ public:
 	DBG(VM*);
 	void registerDump(int);
 	void memoryDump(uint16_t);
+	void memoryDump(uint16_t, uint16_t);
+	void registerAnalyze(void);
+	void instructionAnalyze(void);
 };

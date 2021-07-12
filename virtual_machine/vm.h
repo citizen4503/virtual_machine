@@ -22,9 +22,15 @@ public:
 	void step(void);
 
 	/*
-	* Zacne zpracovavat vsechny instrukce od aktualniho PC
+	* Zpracuje pocet instrukci podle predaneho parametru
 	*/
-	void run(void);
+	void step(int);
+
+	/*
+	* Zacne zpracovavat vsechny instrukce od aktualniho PC
+	* @param bool: spusteni stroje na hodnote true
+	*/
+	void run(bool);
 
 	/*
 	* Vraci obsah pameti na adrese
@@ -41,6 +47,8 @@ public:
 	uint16_t getRegisterValue(int);
 
 protected:
+	// pomocna promenna pro zastaveni stroje na instrukci HALT x25
+	bool running = false;
 
 	// Pametova oblast
 	uint16_t memory[65535];
@@ -121,10 +129,10 @@ protected:
 	}instructions;
 
 	typedef enum {
-		TRAP_GETC = 0x20,	// ziska znak z klavesnice, neposila na terminal
+		TRAP_GETC = 0x20,	// ziska znak z klavesnice. Bez promptu
 		TRAP_OUT = 0x21,	// znak na vystup
 		TRAP_PUTS = 0x22,	// string na vystup
-		TRAP_IN = 0x23,		// ziska znak z klavesnice, posle na terminal
+		TRAP_IN = 0x23,		// ziska znak z klavesnice. S promptem
 		TRAP_PUTSP = 0x24,	// byte stringu na vystup
 		TRAP_HALT = 0x25	// zastavi program
 	}trap;
