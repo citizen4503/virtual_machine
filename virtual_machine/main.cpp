@@ -7,12 +7,6 @@ int main() {
 	DBG dbg(&vm);
 	// nahrani binarky do pameti stroje
 	vm.load("rogue.obj");
-
 	vm.run(true);
-	
-
-
-
-	
 	return 0;
 }
